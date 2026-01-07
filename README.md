@@ -1,16 +1,48 @@
-# flutter_app
+# japan_study
 
-A new Flutter project.
+## Flutter question bank app
 
-## Getting Started
+The Flutter app lives in `/flutter_app` and uses a local SQLite database (Drift) to store all questions for offline use.
 
-This project is a starting point for a Flutter application.
+### Run locally
 
-A few resources to get you started if this is your first Flutter project:
+```bash
+cd flutter_app
+flutter pub get
+flutter run
+```
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+### Run on iOS/Android
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+```bash
+cd flutter_app
+flutter pub get
+flutter run -d ios
+flutter run -d android
+```
+
+### Add more questions
+
+1. Edit `data/questions_seed.json` using the schema below.
+2. Copy the updated file into `flutter_app/assets/questions_seed.json`.
+3. Bump the `version` field to trigger re-import on next launch.
+
+### Data schema
+
+```json
+{
+  "version": 1,
+  "questions": [
+    {
+      "id": "ap-2024-q001",
+      "category": "network",
+      "year": 2024,
+      "text": "...",
+      "choices": ["A", "B", "C", "D"],
+      "answerIndex": 2,
+      "explanation": "...",
+      "sourceUrl": "optional"
+    }
+  ]
+}
+```

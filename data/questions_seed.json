@@ -1,0 +1,215 @@
+{
+  "version": 1,
+  "questions": [
+    {
+      "id": "ap-2024-q001",
+      "category": "network",
+      "year": 2024,
+      "text": "Which layer in the OSI model is responsible for end-to-end flow control?",
+      "choices": ["Physical", "Transport", "Network", "Data Link"],
+      "answerIndex": 1,
+      "explanation": "The Transport layer provides end-to-end flow control and reliability.",
+      "sourceUrl": ""
+    },
+    {
+      "id": "ap-2024-q002",
+      "category": "network",
+      "year": 2024,
+      "text": "Which protocol uses port 53 by default?",
+      "choices": ["HTTP", "DNS", "SMTP", "SNMP"],
+      "answerIndex": 1,
+      "explanation": "DNS uses port 53 for queries and responses.",
+      "sourceUrl": ""
+    },
+    {
+      "id": "ap-2024-q003",
+      "category": "security",
+      "year": 2024,
+      "text": "Which control mitigates SQL injection attacks?",
+      "choices": ["Input validation", "Network segmentation", "Data masking", "Patch management"],
+      "answerIndex": 0,
+      "explanation": "Validating and parameterizing inputs helps prevent SQL injection.",
+      "sourceUrl": ""
+    },
+    {
+      "id": "ap-2024-q004",
+      "category": "security",
+      "year": 2024,
+      "text": "What does MFA primarily improve?",
+      "choices": ["Availability", "Integrity", "Confidentiality", "Non-repudiation"],
+      "answerIndex": 2,
+      "explanation": "Multi-factor authentication improves confidentiality by strengthening access control.",
+      "sourceUrl": ""
+    },
+    {
+      "id": "ap-2024-q005",
+      "category": "database",
+      "year": 2024,
+      "text": "Which index type is best for range queries?",
+      "choices": ["Hash index", "B-tree index", "Bitmap index", "Full-text index"],
+      "answerIndex": 1,
+      "explanation": "B-tree indexes are optimized for range scans.",
+      "sourceUrl": ""
+    },
+    {
+      "id": "ap-2024-q006",
+      "category": "database",
+      "year": 2024,
+      "text": "Which normalization form removes transitive dependency?",
+      "choices": ["1NF", "2NF", "3NF", "BCNF"],
+      "answerIndex": 2,
+      "explanation": "3NF removes transitive dependencies.",
+      "sourceUrl": ""
+    },
+    {
+      "id": "ap-2023-q001",
+      "category": "network",
+      "year": 2023,
+      "text": "What is the default subnet mask for a /24 network?",
+      "choices": ["255.0.0.0", "255.255.0.0", "255.255.255.0", "255.255.255.128"],
+      "answerIndex": 2,
+      "explanation": "A /24 network corresponds to 255.255.255.0.",
+      "sourceUrl": ""
+    },
+    {
+      "id": "ap-2023-q002",
+      "category": "network",
+      "year": 2023,
+      "text": "Which device operates at Layer 3?",
+      "choices": ["Hub", "Switch", "Router", "Repeater"],
+      "answerIndex": 2,
+      "explanation": "Routers operate at Layer 3 (Network layer).",
+      "sourceUrl": ""
+    },
+    {
+      "id": "ap-2023-q003",
+      "category": "security",
+      "year": 2023,
+      "text": "Which encryption method uses a public/private key pair?",
+      "choices": ["Symmetric encryption", "Asymmetric encryption", "Hashing", "Tokenization"],
+      "answerIndex": 1,
+      "explanation": "Asymmetric encryption relies on public/private key pairs.",
+      "sourceUrl": ""
+    },
+    {
+      "id": "ap-2023-q004",
+      "category": "security",
+      "year": 2023,
+      "text": "Which is an example of a physical security control?",
+      "choices": ["Firewall", "Badge reader", "Encryption", "IDS"],
+      "answerIndex": 1,
+      "explanation": "Badge readers are physical access controls.",
+      "sourceUrl": ""
+    },
+    {
+      "id": "ap-2023-q005",
+      "category": "database",
+      "year": 2023,
+      "text": "What does ACID stand for?",
+      "choices": ["Atomicity, Consistency, Isolation, Durability", "Availability, Consistency, Integrity, Durability", "Atomicity, Concurrency, Isolation, Distribution", "Availability, Concurrency, Integrity, Distribution"],
+      "answerIndex": 0,
+      "explanation": "ACID stands for Atomicity, Consistency, Isolation, Durability.",
+      "sourceUrl": ""
+    },
+    {
+      "id": "ap-2023-q006",
+      "category": "management",
+      "year": 2023,
+      "text": "Which chart is best for showing task dependencies over time?",
+      "choices": ["Pie chart", "Gantt chart", "Histogram", "Scatter plot"],
+      "answerIndex": 1,
+      "explanation": "Gantt charts visualize tasks and dependencies over time.",
+      "sourceUrl": ""
+    },
+    {
+      "id": "ap-2022-q001",
+      "category": "management",
+      "year": 2022,
+      "text": "Which document defines project scope and objectives?",
+      "choices": ["Project charter", "Test plan", "Incident report", "Release notes"],
+      "answerIndex": 0,
+      "explanation": "The project charter defines scope and objectives.",
+      "sourceUrl": ""
+    },
+    {
+      "id": "ap-2022-q002",
+      "category": "management",
+      "year": 2022,
+      "text": "Which metric tracks how much work is completed compared to the plan?",
+      "choices": ["Velocity", "Burndown", "Throughput", "Lead time"],
+      "answerIndex": 1,
+      "explanation": "A burndown chart shows completed work versus plan over time.",
+      "sourceUrl": ""
+    },
+    {
+      "id": "ap-2022-q003",
+      "category": "security",
+      "year": 2022,
+      "text": "What is the primary purpose of a risk assessment?",
+      "choices": ["Identify and prioritize risks", "Install patches", "Encrypt backups", "Deploy monitoring"],
+      "answerIndex": 0,
+      "explanation": "Risk assessments identify and prioritize risks for mitigation.",
+      "sourceUrl": ""
+    },
+    {
+      "id": "ap-2022-q004",
+      "category": "network",
+      "year": 2022,
+      "text": "Which protocol is used for secure web traffic?",
+      "choices": ["FTP", "HTTPS", "Telnet", "TFTP"],
+      "answerIndex": 1,
+      "explanation": "HTTPS secures web traffic using TLS.",
+      "sourceUrl": ""
+    },
+    {
+      "id": "ap-2022-q005",
+      "category": "database",
+      "year": 2022,
+      "text": "Which command adds a new row to a SQL table?",
+      "choices": ["SELECT", "UPDATE", "INSERT", "DELETE"],
+      "answerIndex": 2,
+      "explanation": "INSERT adds a new row to a table.",
+      "sourceUrl": ""
+    },
+    {
+      "id": "ap-2021-q001",
+      "category": "network",
+      "year": 2021,
+      "text": "What does NAT stand for?",
+      "choices": ["Network Address Translation", "Network Access Token", "Node Allocation Table", "Network Authentication Transfer"],
+      "answerIndex": 0,
+      "explanation": "NAT stands for Network Address Translation.",
+      "sourceUrl": ""
+    },
+    {
+      "id": "ap-2021-q002",
+      "category": "security",
+      "year": 2021,
+      "text": "Which security principle ensures users have only needed access?",
+      "choices": ["Separation of duties", "Least privilege", "Defense in depth", "Fail-safe defaults"],
+      "answerIndex": 1,
+      "explanation": "Least privilege limits access to only what is required.",
+      "sourceUrl": ""
+    },
+    {
+      "id": "ap-2021-q003",
+      "category": "database",
+      "year": 2021,
+      "text": "Which backup type stores only changes since the last full backup?",
+      "choices": ["Full", "Incremental", "Differential", "Snapshot"],
+      "answerIndex": 2,
+      "explanation": "Differential backups store changes since the last full backup.",
+      "sourceUrl": ""
+    },
+    {
+      "id": "ap-2021-q004",
+      "category": "management",
+      "year": 2021,
+      "text": "Which technique ranks risks by impact and likelihood?",
+      "choices": ["Risk matrix", "User story mapping", "Root cause analysis", "MoSCoW"],
+      "answerIndex": 0,
+      "explanation": "A risk matrix ranks risks by impact and likelihood.",
+      "sourceUrl": ""
+    }
+  ]
+}
