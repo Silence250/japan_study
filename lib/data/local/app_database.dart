@@ -64,8 +64,7 @@ class AppDatabase extends GeneratedDatabase {
 
   Future<int?> getSeedVersion() async {
     final rows = await customSelect(
-      'SELECT value FROM meta WHERE key = ?',
-      variables: [Variable.withString('seed_version')],
+      "SELECT value FROM meta WHERE key = 'seed_version'",
     ).get();
     if (rows.isEmpty) {
       return null;
@@ -77,8 +76,8 @@ class AppDatabase extends GeneratedDatabase {
     await customStatement(
       'INSERT INTO meta(key, value) VALUES(?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value',
       [
-        Variable.withString('seed_version'),
-        Variable.withString(version.toString()),
+        'seed_version',
+        version.toString(),
       ],
     );
   }
@@ -107,14 +106,14 @@ class AppDatabase extends GeneratedDatabase {
           source_url = excluded.source_url
       ''',
       [
-        Variable.withString(id),
-        Variable.withString(category),
-        Variable.withInt(year),
-        Variable.withString(text),
-        Variable.withString(choices),
-        Variable.withInt(answerIndex),
-        Variable.withString(explanation),
-        Variable.withString(sourceUrl ?? ''),
+        id,
+        category,
+        year,
+        text,
+        choices,
+        answerIndex,
+        explanation,
+        sourceUrl ?? '',
       ],
     );
   }
@@ -150,14 +149,12 @@ class AppDatabase extends GeneratedDatabase {
           updated_at = excluded.updated_at
       ''',
       [
-        Variable.withString(questionId),
-        selectedIndex == null
-            ? const Variable<int>(null)
-            : Variable.withInt(selectedIndex),
-        Variable.withBool(isCorrect),
-        Variable.withBool(isFavorite),
-        Variable.withBool(isWrong),
-        Variable.withString(DateTime.now().toIso8601String()),
+        questionId,
+        selectedIndex,
+        isCorrect,
+        isFavorite,
+        isWrong,
+        DateTime.now().toIso8601String(),
       ],
     );
   }
