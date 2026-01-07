@@ -6,8 +6,14 @@ import 'package:drift/native.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
-class AppDatabase extends DatabaseConnectionUser {
-  AppDatabase._(DatabaseConnection connection) : super(connection);
+class AppDatabase extends GeneratedDatabase {
+  AppDatabase._(QueryExecutor executor) : super(executor);
+
+  @override
+  int get schemaVersion => 1;
+
+  @override
+  Iterable<TableInfo> get allTables => const [];
 
   static Future<AppDatabase> open({bool inMemory = false}) async {
     final executor = inMemory
@@ -20,8 +26,7 @@ class AppDatabase extends DatabaseConnectionUser {
               ),
             ),
           );
-    final connection = DatabaseConnection.fromExecutor(executor);
-    final database = AppDatabase._(connection);
+    final database = AppDatabase._(executor);
     await database._init();
     return database;
   }
@@ -60,7 +65,7 @@ class AppDatabase extends DatabaseConnectionUser {
   Future<int?> getSeedVersion() async {
     final rows = await customSelect(
       'SELECT value FROM meta WHERE key = ?',
-      variables: [const Variable.withString('seed_version')],
+      variables: [Variable.withString('seed_version')],
     ).get();
     if (rows.isEmpty) {
       return null;
@@ -72,7 +77,7 @@ class AppDatabase extends DatabaseConnectionUser {
     await customStatement(
       'INSERT INTO meta(key, value) VALUES(?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value',
       [
-        const Variable.withString('seed_version'),
+        Variable.withString('seed_version'),
         Variable.withString(version.toString()),
       ],
     );
@@ -147,7 +152,7 @@ class AppDatabase extends DatabaseConnectionUser {
       [
         Variable.withString(questionId),
         selectedIndex == null
-            ? const Variable.withNull()
+            ? const Variable<int>(null)
             : Variable.withInt(selectedIndex),
         Variable.withBool(isCorrect),
         Variable.withBool(isFavorite),
@@ -156,7 +161,4 @@ class AppDatabase extends DatabaseConnectionUser {
       ],
     );
   }
-
-  @override
-  Future<void> close() => connection.close();
 }
