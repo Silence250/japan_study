@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../data/question_repository.dart';
 import '../../data/question_service.dart';
@@ -31,97 +32,116 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
       progressProvider((category: widget.category, year: widget.year)),
     );
 
-    return Scaffold(
-      appBar: AppBar(title: Text('${widget.category} ${widget.year}')),
-      body: questionsAsync.when(
-        data: (questions) {
-          if (questions.isEmpty) {
-            return const Center(child: Text('No questions found.'));
-          }
-          _index = _index.clamp(0, questions.length - 1);
-          final item = questions[_index];
-          _syncWithQuestion(item);
-
-          return Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _ProgressHeader(
-                  index: _index + 1,
-                  total: questions.length,
-                  progressAsync: progressAsync,
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  item.question.text,
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-                const SizedBox(height: 12),
-                _ChoicesList(
-                  question: item.question,
-                  selectedIndex: _selectedIndex,
-                  checked: _checked,
-                  onSelect: (index) {
-                    setState(() {
-                      _selectedIndex = index;
-                    });
-                  },
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    ElevatedButton(
-                      onPressed: _selectedIndex == null
-                          ? null
-                          : () async {
-                              await ref
-                                  .read(questionServiceProvider)
-                                  .saveAnswer(item.question, _selectedIndex!);
-                              setState(() {
-                                _checked = true;
-                              });
-                            },
-                      child: Text(_checked ? 'Answered' : 'Check answer'),
-                    ),
-                    const SizedBox(width: 12),
-                    IconButton(
-                      icon: Icon(
-                        item.answerState.isFavorite
-                            ? Icons.star
-                            : Icons.star_border,
-                      ),
-                      tooltip: 'Favorite',
-                      onPressed: () async {
-                        await ref
-                            .read(questionServiceProvider)
-                            .toggleFavorite(
-                              item.question,
-                              !item.answerState.isFavorite,
-                            );
-                      },
-                    ),
-                  ],
-                ),
-                if (_checked)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 12),
-                    child: _ExplanationPanel(question: item.question),
-                  ),
-                const Spacer(),
-                _NavigationBar(
-                  hasPrevious: _index > 0,
-                  hasNext: _index < questions.length - 1,
-                  onPrevious: () => setState(() => _index -= 1),
-                  onNext: () => setState(() => _index += 1),
-                ),
-              ],
+    return WillPopScope(
+      onWillPop: _onWillPop,
+      child: Scaffold(
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: _handleBack,
+          ),
+          title: Text('${widget.category} ${widget.year}'),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.home),
+              tooltip: 'Home',
+              onPressed: _handleHome,
             ),
-          );
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stack) =>
-            Center(child: Text('Failed to load questions: $error')),
+          ],
+        ),
+        body: questionsAsync.when(
+          data: (questions) {
+            if (questions.isEmpty) {
+              return const Center(child: Text('No questions found.'));
+            }
+            _index = _index.clamp(0, questions.length - 1);
+            final item = questions[_index];
+            _syncWithQuestion(item);
+
+            return Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _ProgressHeader(
+                    index: _index + 1,
+                    total: questions.length,
+                    progressAsync: progressAsync,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    item.question.text,
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: 12),
+                  _ChoicesList(
+                    question: item.question,
+                    selectedIndex: _selectedIndex,
+                    checked: _checked,
+                    onSelect: (index) {
+                      setState(() {
+                        _selectedIndex = index;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      ElevatedButton(
+                        onPressed: _selectedIndex == null
+                            ? null
+                            : () async {
+                                await ref
+                                    .read(questionServiceProvider)
+                                    .saveAnswer(
+                                      item.question,
+                                      _selectedIndex!,
+                                    );
+                                setState(() {
+                                  _checked = true;
+                                });
+                              },
+                        child: Text(_checked ? 'Answered' : 'Check answer'),
+                      ),
+                      const SizedBox(width: 12),
+                      IconButton(
+                        icon: Icon(
+                          item.answerState.isFavorite
+                              ? Icons.star
+                              : Icons.star_border,
+                        ),
+                        tooltip: 'Favorite',
+                        onPressed: () async {
+                          await ref
+                              .read(questionServiceProvider)
+                              .toggleFavorite(
+                                item.question,
+                                !item.answerState.isFavorite,
+                              );
+                        },
+                      ),
+                    ],
+                  ),
+                  if (_checked)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 12),
+                      child: _ExplanationPanel(question: item.question),
+                    ),
+                  const Spacer(),
+                  _NavigationBar(
+                    hasPrevious: _index > 0,
+                    hasNext: _index < questions.length - 1,
+                    onPrevious: () => setState(() => _index -= 1),
+                    onNext: () => setState(() => _index += 1),
+                  ),
+                ],
+              ),
+            );
+          },
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (error, stack) =>
+              Center(child: Text('Failed to load questions: $error')),
+        ),
       ),
     );
   }
@@ -144,6 +164,56 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
       _checked = false;
     }
   }
+
+  Future<bool> _onWillPop() async {
+    return _confirmLeave();
+  }
+
+  Future<void> _handleBack() async {
+    if (await _confirmLeave()) {
+      if (context.canPop()) {
+        context.pop();
+      } else {
+        // Fallback to home if no back stack exists.
+        context.goNamed('home');
+      }
+    }
+  }
+
+  Future<void> _handleHome() async {
+    if (await _confirmLeave()) {
+      if (mounted) {
+        context.goNamed('home');
+      }
+    }
+  }
+
+  Future<bool> _confirmLeave() async {
+    if (!_hasProgress) {
+      return true;
+    }
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Leave quiz?'),
+        content: const Text('Your progress may be lost.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Leave'),
+          ),
+        ],
+      ),
+    );
+    return result ?? false;
+  }
+
+  bool get _hasProgress =>
+      _checked || _selectedIndex != null || _index > 0;
 }
 
 class _ProgressHeader extends StatelessWidget {

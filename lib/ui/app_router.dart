@@ -9,8 +9,13 @@ import 'screens/search_screen.dart';
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     routes: [
-      GoRoute(path: '/', builder: (context, state) => const HomeScreen()),
       GoRoute(
+        name: 'home',
+        path: '/',
+        builder: (context, state) => const HomeScreen(),
+      ),
+      GoRoute(
+        name: 'quiz',
         path: '/quiz/:category/:year',
         builder: (context, state) {
           final category = state.pathParameters['category']!;
@@ -19,10 +24,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         },
       ),
       GoRoute(
+        name: 'search',
         path: '/search',
         builder: (context, state) => const SearchScreen(),
       ),
       GoRoute(
+        name: 'library',
         path: '/library',
         builder: (context, state) => const LibraryScreen(),
       ),

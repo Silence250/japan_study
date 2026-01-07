@@ -28,12 +28,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         title: const Text('Question Bank'),
         actions: [
           IconButton(
-            onPressed: () => context.go('/search'),
+            onPressed: () => context.pushNamed('search'),
             icon: const Icon(Icons.search),
             tooltip: 'Search',
           ),
           IconButton(
-            onPressed: () => context.go('/library'),
+            onPressed: () => context.pushNamed('library'),
             icon: const Icon(Icons.bookmark),
             tooltip: 'Favorites & Wrong',
           ),
@@ -136,14 +136,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ),
             const SizedBox(height: 12),
             for (final year in years)
-              Card(
-                child: ListTile(
-                  title: Text('${year.year}'),
-                  subtitle: Text('${year.count} questions'),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => context.go('/quiz/$selected/${year.year}'),
-                ),
-              ),
+                  Card(
+                    child: ListTile(
+                      title: Text('${year.year}'),
+                      subtitle: Text('${year.count} questions'),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () => context.pushNamed(
+                        'quiz',
+                        pathParameters: {
+                          'category': selected,
+                          'year': '${year.year}',
+                        },
+                      ),
+                    ),
+                  ),
           ],
         );
       },
