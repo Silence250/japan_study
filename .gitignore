@@ -43,3 +43,11 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+__pycache__/
+*.pyc
+.cache/
+debug_pages/
+tmp*.json
+build/
+.dart_tool/
+
