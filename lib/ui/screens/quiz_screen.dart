@@ -58,84 +58,93 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
             final item = questions[_index];
             _syncWithQuestion(item);
 
-            return Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _ProgressHeader(
-                    index: _index + 1,
-                    total: questions.length,
-                    progressAsync: progressAsync,
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    item.question.text,
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
-                  const SizedBox(height: 12),
-                  _ChoicesList(
-                    question: item.question,
-                    selectedIndex: _selectedIndex,
-                    checked: _checked,
-                    onSelect: (index) {
-                      setState(() {
-                        _selectedIndex = index;
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      ElevatedButton(
-                        onPressed: _selectedIndex == null
-                            ? null
-                            : () async {
+            return Column(
+              children: [
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _ProgressHeader(
+                          index: _index + 1,
+                          total: questions.length,
+                          progressAsync: progressAsync,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          item.question.text,
+                          style: Theme.of(context).textTheme.titleLarge,
+                        ),
+                        const SizedBox(height: 12),
+                        _ChoicesList(
+                          question: item.question,
+                          selectedIndex: _selectedIndex,
+                          checked: _checked,
+                          onSelect: (index) {
+                            setState(() {
+                              _selectedIndex = index;
+                            });
+                          },
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            ElevatedButton(
+                              onPressed: _selectedIndex == null
+                                  ? null
+                                  : () async {
+                                      await ref
+                                          .read(questionServiceProvider)
+                                          .saveAnswer(
+                                            item.question,
+                                            _selectedIndex!,
+                                          );
+                                      setState(() {
+                                        _checked = true;
+                                      });
+                                    },
+                              child: Text(_checked ? 'Answered' : 'Check answer'),
+                            ),
+                            const SizedBox(width: 12),
+                            IconButton(
+                              icon: Icon(
+                                item.answerState.isFavorite
+                                    ? Icons.star
+                                    : Icons.star_border,
+                              ),
+                              tooltip: 'Favorite',
+                              onPressed: () async {
                                 await ref
                                     .read(questionServiceProvider)
-                                    .saveAnswer(
+                                    .toggleFavorite(
                                       item.question,
-                                      _selectedIndex!,
+                                      !item.answerState.isFavorite,
                                     );
-                                setState(() {
-                                  _checked = true;
-                                });
                               },
-                        child: Text(_checked ? 'Answered' : 'Check answer'),
-                      ),
-                      const SizedBox(width: 12),
-                      IconButton(
-                        icon: Icon(
-                          item.answerState.isFavorite
-                              ? Icons.star
-                              : Icons.star_border,
+                            ),
+                          ],
                         ),
-                        tooltip: 'Favorite',
-                        onPressed: () async {
-                          await ref
-                              .read(questionServiceProvider)
-                              .toggleFavorite(
-                                item.question,
-                                !item.answerState.isFavorite,
-                              );
-                        },
-                      ),
-                    ],
-                  ),
-                  if (_checked)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 12),
-                      child: _ExplanationPanel(question: item.question),
+                        if (_checked)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 12),
+                            child: _ExplanationPanel(question: item.question),
+                          ),
+                        const SizedBox(height: 24),
+                      ],
                     ),
-                  const Spacer(),
-                  _NavigationBar(
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: _NavigationBar(
                     hasPrevious: _index > 0,
                     hasNext: _index < questions.length - 1,
                     onPrevious: () => setState(() => _index -= 1),
                     onNext: () => setState(() => _index += 1),
                   ),
-                ],
-              ),
+                ),
+              ],
             );
           },
           loading: () => const Center(child: CircularProgressIndicator()),
@@ -308,7 +317,12 @@ class _ExplanationPanel extends StatelessWidget {
           children: [
             Text('Explanation', style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
-            Text(question.explanation),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 240),
+              child: SingleChildScrollView(
+                child: Text(question.explanation),
+              ),
+            ),
           ],
         ),
       ),

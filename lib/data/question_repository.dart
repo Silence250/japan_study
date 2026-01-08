@@ -233,6 +233,14 @@ class QuestionRepository {
     return ProgressSummary(total: total, answered: answered, correct: correct);
   }
 
+  Stream<ProgressSummary> watchProgress(String category, int year) async* {
+    // emit initial
+    yield await fetchProgress(category, year);
+    await for (final _ in _changes.stream) {
+      yield await fetchProgress(category, year);
+    }
+  }
+
   Future<void> saveAnswer(Question question, int selectedIndex) async {
     final existing = await _database.query(
       'SELECT is_favorite FROM question_answers WHERE question_id = ?',
@@ -249,6 +257,32 @@ class QuestionRepository {
       isFavorite: isFavorite,
     );
     _changes.add(null);
+  }
+
+  Future<List<int>> refreshFromSeed() async {
+    final jsonString = await rootBundle.loadString(
+      'assets/questions_seed.json',
+    );
+    final seed = QuestionsSeed.fromJson(
+      jsonDecode(jsonString) as Map<String, dynamic>,
+    );
+    final years = <int>{};
+    for (final question in seed.questions) {
+      years.add(question.year);
+      await _database.upsertQuestion(
+        id: question.id,
+        category: question.category,
+        year: question.year,
+        text: question.text,
+        choices: Question.encodeChoices(question.choices),
+        answerIndex: question.answerIndex,
+        explanation: question.explanation,
+        sourceUrl: question.sourceUrl,
+      );
+    }
+    await _database.setSeedVersion(seed.version);
+    _changes.add(null);
+    return years.toList()..sort();
   }
 
   Future<void> toggleFavorite(Question question, bool isFavorite) async {

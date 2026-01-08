@@ -1,11 +1,11 @@
-"""
+﻿"""
 CLI entrypoint for extracting AP questions from the public website into the
 Flutter seed JSON format.
 
 Usage examples:
   python scrape.py --out data/questions_seed.json --sessions all
-  python scrape.py --out data/questions_seed.json --sessions "2025春,2024春"
-  python scrape.py --out data/questions_seed.json --sessions "2025春" --resume
+  python scrape.py --out data/questions_seed.json --sessions "2025譏･,2024譏･"
+  python scrape.py --out data/questions_seed.json --sessions "2025譏･" --resume
 
 This script is intentionally conservative:
 - Throttles requests (default 1 req/sec).
@@ -44,6 +44,12 @@ import re
 import os
 from bs4 import BeautifulSoup
 
+# Ensure stdout can emit UTF-8 characters on Windows consoles.
+try:
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+except Exception:
+    pass
+
 
 BASE_URL = "https://www.ap-siken.com/apkakomon.php"
 
@@ -53,7 +59,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--sessions",
         required=True,
-        help='Session list: "all" or comma-separated labels (e.g., "2025春,2024春")',
+        help='Session list: "all" or comma-separated labels (e.g., "2025譏･,2024譏･")',
     )
     parser.add_argument(
         "--list-sessions",
@@ -266,7 +272,7 @@ def scrape_session(
         marker = f"第{idx+1}問"
         found_marker = marker in html
         page_no = None
-        m = re.search(r"第(\d+)問", html)
+        m = re.search(r"第(\\d+)問", html)
         if m:
             page_no = int(m.group(1))
         print(f"qno={idx} marker_found={found_marker} page_no={page_no}")
@@ -281,7 +287,7 @@ def scrape_session(
             if q.get("id") is None:
                 q["id"] = stable_question_id(session.year, store.next_sequence(session.year))
             if q.get("answerIndex") == -1:
-                print(f"Warning: missing answer for qno {idx} ({q['id']}); set to -1")
+                print(f"Warning: missing answer for qno {idx} ({q.get('id')}); set to -1")
             store.add(q)
 
     def parse_hidden_params(html: str) -> Tuple[str, str, str, str]:
@@ -302,6 +308,7 @@ def scrape_session(
     for idx in range(max_qno):
         qno_value = idx
         attempts = 0
+        last_html = ""
         while attempts < 3:
             status, html, body = fetch_question_page(
                 client,
@@ -315,22 +322,19 @@ def scrape_session(
                 result_value,
                 save_debug=save_html,
             )
+            last_html = html
             print(f"qno={qno_value} status={status} len={len(html)} attempt={attempts+1}")
             handle_html(html, idx)
             if f"第{idx+1}問" in html:
-                # Update hidden params for next request.
                 q_param, r_param, c_param, result_value = parse_hidden_params(html)
-                # Force result to 0 for subsequent sends.
                 result_value = "0"
                 break
             attempts += 1
             time.sleep(1)
-        if attempts == 3 and f"第{idx+1}問" not in html:
+        if attempts == 3 and f"第{idx+1}問" not in last_html:
             print(f"[warn] qno={qno_value} still config after retries")
 
     print(f"Added {len(store.all_questions())} questions so far for {session.label}")
-
-
 def main() -> None:
     args = parse_args()
     out_path = Path(args.out)
@@ -349,10 +353,7 @@ def main() -> None:
 
     sessions = resolve_sessions(args.sessions, discovered)
 
-    store = QuestionStore()
-    if args.resume and out_path.exists():
-        print(f"Resuming from existing output: {out_path}")
-        store.load_existing(out_path)
+    store = QuestionStore(str(out_path), resume=args.resume)
 
     for session in sessions:
         scrape_session(
@@ -360,7 +361,7 @@ def main() -> None:
         )
 
     try:
-        write_seed(out_path, version=1, questions=store.all_questions())
+        write_seed(str(out_path), version=1, questions=store.all_questions())
     except ValidationError as exc:
         print(f"Validation failed: {exc}")
         sys.exit(1)
@@ -378,3 +379,8 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+
+
+
+

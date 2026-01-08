@@ -31,13 +31,13 @@ final wrongAnswersProvider = StreamProvider((ref) {
   return ref.watch(questionServiceProvider).watchWrongAnswers();
 });
 
-final progressProvider = FutureProvider.family((
+final progressProvider = StreamProvider.family((
   ref,
   ({String category, int year}) args,
 ) {
   return ref
       .watch(questionServiceProvider)
-      .fetchProgress(args.category, args.year);
+      .watchProgress(args.category, args.year);
 });
 
 final searchProvider = FutureProvider.family((ref, String query) {
