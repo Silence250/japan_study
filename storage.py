@@ -43,6 +43,14 @@ def validate_question(q: Dict[str, Any]) -> None:
 def validate_seed(seed: Dict[str, Any]) -> None:
     if "questions" not in seed or not isinstance(seed["questions"], list):
         raise ValidationError("Seed must have 'questions' list")
+    if "generatedAt" in seed and seed["generatedAt"] is not None:
+        if not isinstance(seed["generatedAt"], str):
+            raise ValidationError("generatedAt must be a string when present")
+    if "sourceSessions" in seed and seed["sourceSessions"] is not None:
+        if not isinstance(seed["sourceSessions"], list) or not all(
+            isinstance(s, str) for s in seed["sourceSessions"]
+        ):
+            raise ValidationError("sourceSessions must be a list of strings when present")
     for q in seed["questions"]:
         validate_question(q)
 
@@ -91,9 +99,13 @@ def merge_seed_files(
     merged_questions, added, replaced = merge_questions(
         existing.get("questions", []), incoming.get("questions", []), prefer_new=prefer_new
     )
+    merged_generated_at = incoming.get("generatedAt") or existing.get("generatedAt")
+    merged_source_sessions = incoming.get("sourceSessions") or existing.get("sourceSessions", [])
     merged_seed = {
         "version": max(existing.get("version", 1), incoming.get("version", 1)),
         "questions": merged_questions,
+        "generatedAt": merged_generated_at,
+        "sourceSessions": merged_source_sessions,
     }
     validate_seed(merged_seed)
     write_seed_atomic(out_path, merged_seed)
@@ -154,14 +166,29 @@ def _write_seed_atomic_compat(path: str, seed: Dict[str, Any]) -> None:
             pass
 
 
-def write_seed(path: str, seed: Dict[str, Any] = None, *, version: int = None, questions: Iterable[Dict[str, Any]] = None) -> None:
+def write_seed(
+    path: str,
+    seed: Dict[str, Any] = None,
+    *,
+    version: int = None,
+    questions: Iterable[Dict[str, Any]] = None,
+    generated_at: str = None,
+    source_sessions: Iterable[str] = None,
+) -> None:
     """
     Backward-compatible name expected by scrape.py.
     Accepts either (path, seed_dict) or (path, version=?, questions=?).
     """
     p = Path(path)
     if seed is None:
-        seed = {"version": version or 1, "questions": list(questions or [])}
+        seed = {
+            "version": version or 1,
+            "questions": list(questions or []),
+        }
+        if generated_at is not None:
+            seed["generatedAt"] = generated_at
+        if source_sessions is not None:
+            seed["sourceSessions"] = list(source_sessions)
     _write_seed_atomic_compat(p, seed)
 
 
@@ -232,7 +259,15 @@ class QuestionStore:
         new_ids = [i for i in all_ids if i not in existing_ids]
 
         merged = [self._by_id[i] for i in existing_ids] + [self._by_id[i] for i in new_ids]
-        return {"version": self.seed.get("version", 1), "questions": merged}
+        seed_obj: Dict[str, Any] = {
+            "version": self.seed.get("version", 1),
+            "questions": merged,
+        }
+        if "generatedAt" in self.seed:
+            seed_obj["generatedAt"] = self.seed.get("generatedAt")
+        if "sourceSessions" in self.seed:
+            seed_obj["sourceSessions"] = self.seed.get("sourceSessions")
+        return seed_obj
 
     def save(self) -> None:
         seed = self.to_seed()

@@ -63,10 +63,17 @@ class Question {
 }
 
 class QuestionsSeed {
-  const QuestionsSeed({required this.version, required this.questions});
+  const QuestionsSeed({
+    required this.version,
+    required this.questions,
+    this.generatedAt,
+    this.sourceSessions = const [],
+  });
 
   final int version;
   final List<Question> questions;
+  final String? generatedAt;
+  final List<String> sourceSessions;
 
   factory QuestionsSeed.fromJson(Map<String, dynamic> json) {
     return QuestionsSeed(
@@ -76,6 +83,11 @@ class QuestionsSeed {
             (question) => Question.fromJson(question as Map<String, dynamic>),
           )
           .toList(),
+      generatedAt: json['generatedAt'] as String?,
+      sourceSessions: (json['sourceSessions'] as List<dynamic>?)
+              ?.whereType<String>()
+              .toList() ??
+          const [],
     );
   }
 }

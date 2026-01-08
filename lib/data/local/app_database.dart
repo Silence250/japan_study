@@ -72,12 +72,31 @@ class AppDatabase extends GeneratedDatabase {
     return int.tryParse(rows.first.data['value'] as String? ?? '');
   }
 
+  Future<String?> getMetaValue(String key) async {
+    final rows = await customSelect(
+      "SELECT value FROM meta WHERE key = ?",
+      variables: [Variable.withString(key)],
+    ).get();
+    if (rows.isEmpty) return null;
+    return rows.first.data['value'] as String?;
+  }
+
   Future<void> setSeedVersion(int version) async {
     await customStatement(
       'INSERT INTO meta(key, value) VALUES(?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value',
       [
         'seed_version',
         version.toString(),
+      ],
+    );
+  }
+
+  Future<void> setMetaValue(String key, String value) async {
+    await customStatement(
+      'INSERT INTO meta(key, value) VALUES(?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value',
+      [
+        key,
+        value,
       ],
     );
   }
@@ -116,6 +135,14 @@ class AppDatabase extends GeneratedDatabase {
         sourceUrl ?? '',
       ],
     );
+  }
+
+  Future<bool> questionExists(String id) async {
+    final rows = await customSelect(
+      'SELECT 1 FROM questions WHERE id = ? LIMIT 1',
+      variables: [Variable.withString(id)],
+    ).get();
+    return rows.isNotEmpty;
   }
 
   Future<List<QueryRow>> query(String sql, List<Variable> variables) {

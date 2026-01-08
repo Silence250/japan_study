@@ -5,6 +5,9 @@ param(
   [string]$Tmp = "tmp_seed.json",
   [switch]$PreferNew,
   [switch]$InstallAndroid,
+  [switch]$Run,
+  [switch]$ClearData,
+  [string]$Package = "",
   [string]$AdbPath = ""
 )
 
@@ -21,7 +24,9 @@ $argsList = @(
   "--tmp", $Tmp
 )
 if ($PreferNew) { $argsList += "--prefer-new" }
-if ($InstallAndroid) { $argsList += "--install-android" }
+if ($InstallAndroid -or $Run) { $argsList += "--run" }
+if ($ClearData) { $argsList += "--clear-data" }
+if ($Package) { $argsList += @("--package", $Package) }
 if ($AdbPath) { $argsList += @("--adb", $AdbPath) }
 
 python @argsList

@@ -11,7 +11,7 @@ class QuestionService {
 
   final QuestionRepository _repository;
 
-  Future<void> ensureSeeded() => _repository.ensureSeeded();
+  Future<SeedRefreshResult> ensureSeeded() => _repository.ensureSeeded();
 
   Stream<List<CategorySummary>> watchCategories() =>
       _repository.watchCategories();
@@ -49,7 +49,7 @@ class QuestionService {
     return _repository.toggleFavorite(question, isFavorite);
   }
 
-  Future<List<int>> refreshFromSeed() {
+  Future<SeedRefreshResult> refreshFromSeed() {
     return _repository.refreshFromSeed();
   }
 

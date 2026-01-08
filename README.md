@@ -58,6 +58,20 @@ Flags:
 - Prints totals plus per-year and per-category counts.
 - Fails fast on missing fields.
 
+### Seed metadata
+- The seed JSON now includes `generatedAt` (ISO-8601) and `sourceSessions` at the root.
+- The Flutter app auto-imports when `generatedAt` differs from the last imported value, preserving user progress and showing a small in-app notice.
+
+### Update & install helpers
+- Cross-platform updater: `python tools/update_seed.py --sessions "令和7年春期"`  
+  - Optional install/restart Android: add `--run` (and `--adb <path>` if needed).
+  - Optional clear data (dev-only): `--clear-data`
+  - Override package: `--package com.example.app`
+  - Override flutter: `--flutter C:\path\to\flutter.bat` (skips run if not found)
+- PowerShell wrapper:  
+  `powershell -NoProfile -ExecutionPolicy Bypass -File tools/update_seed.ps1 -Sessions "令和7年春期" [-Run] [-ClearData]`
+- The updater merges into `assets/questions_seed.json`, keeps existing progress, and only refreshes DB when metadata changed.
+
 ### Adapting parsing
 - For JSON: adjust keys in `parse_questions_from_json`.
 - For HTML: adjust selectors in `extract_questions_from_html` (look for question text, choices, answer).

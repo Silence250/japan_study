@@ -40,6 +40,7 @@ from parser import (
 from storage import QuestionStore, ValidationError, write_seed
 from urllib.parse import parse_qsl, urlencode
 import time
+from datetime import datetime
 import re
 import os
 from bs4 import BeautifulSoup
@@ -360,8 +361,15 @@ def main() -> None:
             client, session, store, max_qno=args.max_qno, save_html=args.debug_pages
         )
 
+    seed_meta = {
+        "version": 1,
+        "questions": store.all_questions(),
+        "generatedAt": datetime.utcnow().isoformat() + "Z",
+        "sourceSessions": [s.label for s in sessions],
+    }
+
     try:
-        write_seed(str(out_path), version=1, questions=store.all_questions())
+        write_seed(str(out_path), seed=seed_meta)
     except ValidationError as exc:
         print(f"Validation failed: {exc}")
         sys.exit(1)

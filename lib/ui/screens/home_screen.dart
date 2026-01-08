@@ -16,6 +16,7 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   String? _selectedCategory;
   List<_CategoryNode> _categoryTree = const [];
+  String? _lastSeedGeneratedAt;
 
   @override
   Widget build(BuildContext context) {
@@ -60,7 +61,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               child: _buildCategoryList(categoriesAsync, onSelect: _onSelect),
             ),
       body: seedState.when(
-        data: (_) {
+        data: (seedResult) {
+          _maybeShowSeedNotice(seedResult);
           return categoriesAsync.when(
             data: (categories) {
               if (categories.isEmpty) {
@@ -94,6 +96,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             Center(child: Text('Failed to load seed data: $error')),
       ),
     );
+  }
+
+  void _maybeShowSeedNotice(SeedRefreshResult result) {
+    if (!result.updated) return;
+    if (result.generatedAt != null && result.generatedAt == _lastSeedGeneratedAt) {
+      return;
+    }
+    _lastSeedGeneratedAt = result.generatedAt ?? _lastSeedGeneratedAt;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final sessions = result.sourceSessions.isNotEmpty
+          ? result.sourceSessions.join(', ')
+          : 'seed';
+      final suffix = result.inserted > 0 ? ' (+${result.inserted})' : '';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Updated: $sessions$suffix')),
+      );
+    });
   }
 
   Widget _buildCategoryList(
@@ -176,9 +195,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Future<void> _refreshQuestions() async {
     final messenger = ScaffoldMessenger.of(context);
     try {
-      final years =
-          await ref.read(questionServiceProvider).refreshFromSeed();
-      final label = years.isEmpty ? 'Updated question data' : 'Updated question data for years: ${years.join(', ')}';
+      final result = await ref.read(questionServiceProvider).refreshFromSeed();
+      final sessions = result.sourceSessions.isNotEmpty
+          ? result.sourceSessions.join(', ')
+          : 'seed';
+      final yearsText = result.years.isEmpty
+          ? ''
+          : ' for years: ${result.years.join(', ')}';
+      final delta = result.inserted > 0 ? ' (+${result.inserted})' : '';
+      final label = 'Updated question data from $sessions$yearsText$delta';
       messenger.showSnackBar(
         SnackBar(content: Text(label)),
       );
