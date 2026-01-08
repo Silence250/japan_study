@@ -54,6 +54,22 @@ class ProgressSummary {
   final int correct;
 }
 
+class SeedRefreshResult {
+  const SeedRefreshResult({
+    required this.years,
+    required this.inserted,
+    required this.sourceSessions,
+    this.generatedAt,
+    required this.updated,
+  });
+
+  final List<int> years;
+  final int inserted;
+  final List<String> sourceSessions;
+  final String? generatedAt;
+  final bool updated;
+}
+
 class QuestionRepository {
   QuestionRepository(this._database);
 
@@ -62,7 +78,7 @@ class QuestionRepository {
 
   Stream<void> get changes => _changes.stream;
 
-  Future<void> ensureSeeded() async {
+  Future<SeedRefreshResult> ensureSeeded() async {
     final jsonString = await rootBundle.loadString(
       'assets/questions_seed.json',
     );
@@ -70,25 +86,24 @@ class QuestionRepository {
       jsonDecode(jsonString) as Map<String, dynamic>,
     );
     final currentVersion = await _database.getSeedVersion();
-    if (currentVersion != null && currentVersion >= seed.version) {
-      return;
-    }
-
-    for (final question in seed.questions) {
-      await _database.upsertQuestion(
-        id: question.id,
-        category: question.category,
-        year: question.year,
-        text: question.text,
-        choices: Question.encodeChoices(question.choices),
-        answerIndex: question.answerIndex,
-        explanation: question.explanation,
-        sourceUrl: question.sourceUrl,
+    final storedGeneratedAt =
+        await _database.getMetaValue('seed_generated_at');
+    final sameGeneratedAt = seed.generatedAt != null &&
+        storedGeneratedAt != null &&
+        storedGeneratedAt == seed.generatedAt;
+    if (sameGeneratedAt ||
+        (seed.generatedAt == null &&
+            currentVersion != null &&
+            currentVersion >= seed.version)) {
+      return SeedRefreshResult(
+        years: const [],
+        inserted: 0,
+        sourceSessions: seed.sourceSessions,
+        generatedAt: seed.generatedAt,
+        updated: false,
       );
     }
-
-    await _database.setSeedVersion(seed.version);
-    _changes.add(null);
+    return _importSeed(seed, previousGeneratedAt: storedGeneratedAt);
   }
 
   Future<void> seedFromQuestions(QuestionsSeed seed) async {
@@ -233,6 +248,14 @@ class QuestionRepository {
     return ProgressSummary(total: total, answered: answered, correct: correct);
   }
 
+  Stream<ProgressSummary> watchProgress(String category, int year) async* {
+    // emit initial
+    yield await fetchProgress(category, year);
+    await for (final _ in _changes.stream) {
+      yield await fetchProgress(category, year);
+    }
+  }
+
   Future<void> saveAnswer(Question question, int selectedIndex) async {
     final existing = await _database.query(
       'SELECT is_favorite FROM question_answers WHERE question_id = ?',
@@ -249,6 +272,20 @@ class QuestionRepository {
       isFavorite: isFavorite,
     );
     _changes.add(null);
+  }
+
+  Future<SeedRefreshResult> refreshFromSeed() async {
+    final storedGeneratedAt =
+        await _database.getMetaValue('seed_generated_at');
+    final jsonString = await rootBundle.loadString(
+      'assets/questions_seed.json',
+    );
+    final seed = QuestionsSeed.fromJson(
+      jsonDecode(jsonString) as Map<String, dynamic>,
+    );
+    final result =
+        await _importSeed(seed, previousGeneratedAt: storedGeneratedAt);
+    return result;
   }
 
   Future<void> toggleFavorite(Question question, bool isFavorite) async {
@@ -303,5 +340,52 @@ class QuestionRepository {
   Future<void> dispose() async {
     await _changes.close();
     await _database.close();
+  }
+
+  Future<SeedRefreshResult> _importSeed(
+    QuestionsSeed seed, {
+    String? previousGeneratedAt,
+  }) async {
+    final years = <int>{};
+    var inserted = 0;
+    for (final question in seed.questions) {
+      years.add(question.year);
+      final exists = await _database.questionExists(question.id);
+      await _database.upsertQuestion(
+        id: question.id,
+        category: question.category,
+        year: question.year,
+        text: question.text,
+        choices: Question.encodeChoices(question.choices),
+        answerIndex: question.answerIndex,
+        explanation: question.explanation,
+        sourceUrl: question.sourceUrl,
+      );
+      if (!exists) {
+        inserted++;
+      }
+    }
+    await _database.setSeedVersion(seed.version);
+    if (seed.generatedAt != null) {
+      await _database.setMetaValue('seed_generated_at', seed.generatedAt!);
+    }
+    if (seed.sourceSessions.isNotEmpty) {
+      await _database.setMetaValue(
+        'seed_source_sessions',
+        seed.sourceSessions.join(','),
+      );
+    }
+    _changes.add(null);
+    final updated = inserted > 0 ||
+        (seed.generatedAt != null &&
+            seed.generatedAt != previousGeneratedAt);
+    final sortedYears = years.toList()..sort();
+    return SeedRefreshResult(
+      years: sortedYears,
+      inserted: inserted,
+      sourceSessions: seed.sourceSessions,
+      generatedAt: seed.generatedAt,
+      updated: updated,
+    );
   }
 }

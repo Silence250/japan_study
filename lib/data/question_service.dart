@@ -11,7 +11,7 @@ class QuestionService {
 
   final QuestionRepository _repository;
 
-  Future<void> ensureSeeded() => _repository.ensureSeeded();
+  Future<SeedRefreshResult> ensureSeeded() => _repository.ensureSeeded();
 
   Stream<List<CategorySummary>> watchCategories() =>
       _repository.watchCategories();
@@ -21,6 +21,10 @@ class QuestionService {
 
   Stream<List<QuestionWithState>> watchQuestions(String category, int year) {
     return _repository.watchQuestions(category, year);
+  }
+
+  Stream<ProgressSummary> watchProgress(String category, int year) {
+    return _repository.watchProgress(category, year);
   }
 
   Stream<List<QuestionWithState>> watchFavorites() =>
@@ -43,6 +47,10 @@ class QuestionService {
 
   Future<void> toggleFavorite(Question question, bool isFavorite) {
     return _repository.toggleFavorite(question, isFavorite);
+  }
+
+  Future<SeedRefreshResult> refreshFromSeed() {
+    return _repository.refreshFromSeed();
   }
 
   Future<void> dispose() => _repository.dispose();

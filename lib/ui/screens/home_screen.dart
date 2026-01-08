@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../data/question_repository.dart';
+import '../../data/question_service.dart';
 import '../providers.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -14,6 +15,8 @@ class HomeScreen extends ConsumerStatefulWidget {
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   String? _selectedCategory;
+  List<_CategoryNode> _categoryTree = const [];
+  String? _lastSeedGeneratedAt;
 
   @override
   Widget build(BuildContext context) {
@@ -37,6 +40,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             icon: const Icon(Icons.bookmark),
             tooltip: 'Favorites & Wrong',
           ),
+          PopupMenuButton<String>(
+            onSelected: (value) {
+              if (value == 'refresh') {
+                _refreshQuestions();
+              }
+            },
+            itemBuilder: (context) => const [
+              PopupMenuItem(
+                value: 'refresh',
+                child: Text('Refresh questions from seed'),
+              ),
+            ],
+          ),
         ],
       ),
       drawer: isWide
@@ -45,30 +61,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               child: _buildCategoryList(categoriesAsync, onSelect: _onSelect),
             ),
       body: seedState.when(
-        data: (_) {
+        data: (seedResult) {
+          _maybeShowSeedNotice(seedResult);
           return categoriesAsync.when(
             data: (categories) {
               if (categories.isEmpty) {
                 return const Center(child: Text('No categories found.'));
               }
-              _selectedCategory ??= categories.first.category;
+              _categoryTree = _buildTree(categories);
+              _selectedCategory ??= _firstLeafPath(_categoryTree);
               final content = Row(
                 children: [
                   if (isWide)
-                    NavigationRail(
-                      selectedIndex: categories.indexWhere(
-                        (cat) => cat.category == _selectedCategory,
+                    SizedBox(
+                      width: 320,
+                      child: _CategoryTree(
+                        nodes: _categoryTree,
+                        selected: _selectedCategory,
+                        onSelect: _onSelect,
                       ),
-                      onDestinationSelected: (index) =>
-                          _onSelect(categories[index].category),
-                      labelType: NavigationRailLabelType.all,
-                      destinations: [
-                        for (final category in categories)
-                          NavigationRailDestination(
-                            icon: const Icon(Icons.folder),
-                            label: Text(category.category),
-                          ),
-                      ],
                     ),
                   Expanded(child: _buildYearList(categories)),
                 ],
@@ -87,27 +98,43 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
+  void _maybeShowSeedNotice(SeedRefreshResult result) {
+    if (!result.updated) return;
+    if (result.generatedAt != null && result.generatedAt == _lastSeedGeneratedAt) {
+      return;
+    }
+    _lastSeedGeneratedAt = result.generatedAt ?? _lastSeedGeneratedAt;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final sessions = result.sourceSessions.isNotEmpty
+          ? result.sourceSessions.join(', ')
+          : 'seed';
+      final suffix = result.inserted > 0 ? ' (+${result.inserted})' : '';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Updated: $sessions$suffix')),
+      );
+    });
+  }
+
   Widget _buildCategoryList(
     AsyncValue<List<CategorySummary>> categoriesAsync, {
     required void Function(String) onSelect,
   }) {
     return categoriesAsync.when(
       data: (categories) {
+        _categoryTree = _buildTree(categories);
         return ListView(
           children: [
             const DrawerHeader(
               child: Text('Categories', style: TextStyle(fontSize: 20)),
             ),
-            for (final category in categories)
-              ListTile(
-                title: Text(category.category),
-                trailing: Text(category.count.toString()),
-                selected: category.category == _selectedCategory,
-                onTap: () {
-                  onSelect(category.category);
-                  Navigator.of(context).pop();
-                },
-              ),
+            _CategoryTree(
+              nodes: _categoryTree,
+              selected: _selectedCategory,
+              onSelect: (path) {
+                onSelect(path);
+                Navigator.of(context).pop();
+              },
+            ),
           ],
         );
       },
@@ -164,4 +191,126 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       _selectedCategory = category;
     });
   }
+
+  Future<void> _refreshQuestions() async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final result = await ref.read(questionServiceProvider).refreshFromSeed();
+      final sessions = result.sourceSessions.isNotEmpty
+          ? result.sourceSessions.join(', ')
+          : 'seed';
+      final yearsText = result.years.isEmpty
+          ? ''
+          : ' for years: ${result.years.join(', ')}';
+      final delta = result.inserted > 0 ? ' (+${result.inserted})' : '';
+      final label = 'Updated question data from $sessions$yearsText$delta';
+      messenger.showSnackBar(
+        SnackBar(content: Text(label)),
+      );
+    } catch (e) {
+      messenger.showSnackBar(
+        SnackBar(content: Text('Refresh failed: $e')),
+      );
+    }
+  }
+}
+
+class _CategoryTree extends StatelessWidget {
+  const _CategoryTree({
+    required this.nodes,
+    required this.selected,
+    required this.onSelect,
+  });
+
+  final List<_CategoryNode> nodes;
+  final String? selected;
+  final ValueChanged<String> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      children: nodes.map((node) => _buildNode(context, node)).toList(),
+    );
+  }
+
+  Widget _buildNode(BuildContext context, _CategoryNode node) {
+    if (node.isLeaf) {
+      return ListTile(
+        title: Text(node.name),
+        trailing: Text(node.count.toString()),
+        selected: node.fullPath == selected,
+        onTap: node.fullPath == null ? null : () => onSelect(node.fullPath!),
+      );
+    }
+    return ExpansionTile(
+      title: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(child: Text(node.name)),
+          Text(node.count.toString()),
+        ],
+      ),
+      children: node.children.map((child) => _buildNode(context, child)).toList(),
+    );
+  }
+}
+
+class _CategoryNode {
+  _CategoryNode(this.name);
+
+  final String name;
+  int count = 0;
+  final List<_CategoryNode> children = [];
+  String? fullPath;
+
+  bool get isLeaf => children.isEmpty;
+}
+
+List<_CategoryNode> _buildTree(List<CategorySummary> categories) {
+  final root = <_CategoryNode>[];
+
+  _CategoryNode _findOrAdd(List<_CategoryNode> level, String name) {
+    final existing = level.where((n) => n.name == name).toList();
+    if (existing.isNotEmpty) return existing.first;
+    final node = _CategoryNode(name);
+    level.add(node);
+    return node;
+  }
+
+  void insert(List<String> parts, int count) {
+    var level = root;
+    String path = '';
+    for (int i = 0; i < parts.length; i++) {
+      final part = parts[i];
+      path = path.isEmpty ? part : '$path » $part';
+      final node = _findOrAdd(level, part);
+      node.count += count;
+      if (i == parts.length - 1) {
+        node.fullPath = path;
+      }
+      level = node.children;
+    }
+  }
+
+  for (final cat in categories) {
+    final parts = cat.category
+        .split(RegExp(r'»|≫'))
+        .map((p) => p.trim())
+        .where((p) => p.isNotEmpty)
+        .toList();
+    if (parts.isEmpty) continue;
+    insert(parts, cat.count);
+  }
+  return root;
+}
+
+String? _firstLeafPath(List<_CategoryNode> nodes) {
+  for (final n in nodes) {
+    if (n.isLeaf) return n.fullPath;
+    final child = _firstLeafPath(n.children);
+    if (child != null) return child;
+  }
+  return null;
 }

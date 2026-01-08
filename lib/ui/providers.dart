@@ -1,9 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../data/question_repository.dart';
 import '../data/question_service.dart';
 
-final seedProvider = FutureProvider<void>((ref) async {
-  await ref.read(questionServiceProvider).ensureSeeded();
+final seedProvider = FutureProvider<SeedRefreshResult>((ref) async {
+  return ref.read(questionServiceProvider).ensureSeeded();
 });
 
 final categoriesProvider = StreamProvider((ref) {
@@ -31,13 +32,13 @@ final wrongAnswersProvider = StreamProvider((ref) {
   return ref.watch(questionServiceProvider).watchWrongAnswers();
 });
 
-final progressProvider = FutureProvider.family((
+final progressProvider = StreamProvider.family((
   ref,
   ({String category, int year}) args,
 ) {
   return ref
       .watch(questionServiceProvider)
-      .fetchProgress(args.category, args.year);
+      .watchProgress(args.category, args.year);
 });
 
 final searchProvider = FutureProvider.family((ref, String query) {
