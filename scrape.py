@@ -268,6 +268,30 @@ def scrape_session(
     c_param = ""
     result_value = "0"
 
+    def question_issue(q: Dict[str, Any]) -> Optional[str]:
+        required = [
+            "id",
+            "category",
+            "year",
+            "text",
+            "choices",
+            "answerIndex",
+            "explanation",
+            "sourceUrl",
+        ]
+        missing = [key for key in required if key not in q]
+        if missing:
+            return f"missing fields: {', '.join(missing)}"
+        choices = q.get("choices")
+        if not isinstance(choices, list) or not choices:
+            return "choices missing"
+        if any(choice is None or not str(choice).strip() for choice in choices):
+            return "choices missing"
+        answer_index = q.get("answerIndex")
+        if not isinstance(answer_index, int) or not (0 <= answer_index < len(choices)):
+            return "answerIndex invalid"
+        return None
+
     def handle_html(html: str, idx: int) -> None:
         marker = f"第{idx+1}問"
         found_marker = marker in html
@@ -286,8 +310,15 @@ def scrape_session(
         for q in questions:
             if q.get("id") is None:
                 q["id"] = stable_question_id(session.year, store.next_sequence(session.year))
-            if q.get("answerIndex") == -1:
-                print(f"Warning: missing answer for qno {idx} ({q.get('id')}); set to -1")
+            issue = question_issue(q)
+            if issue:
+                print(
+                    "[warn] skipping question "
+                    f"id={q.get('id')} year={q.get('year')} "
+                    f"category={q.get('category')} sourceUrl={q.get('sourceUrl')} "
+                    f"reason={issue}"
+                )
+                continue
             store.add(q)
 
     def parse_hidden_params(html: str) -> Tuple[str, str, str, str]:
@@ -386,7 +417,6 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
 
 
 

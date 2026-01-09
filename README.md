@@ -57,6 +57,8 @@ Flags:
 - The writer validates required fields and `answerIndex` bounds before saving.
 - Prints totals plus per-year and per-category counts.
 - Fails fast on missing fields.
+- Validate the current seed: `python3 tools/validate_seed.py --path assets/questions_seed.json`
+- Merge behavior test: `python3 -m unittest tools/test_update_seed_merge.py`
 
 ### Seed metadata
 - The seed JSON now includes `generatedAt` (ISO-8601) and `sourceSessions` at the root.
@@ -66,6 +68,7 @@ Flags:
 - Cross-platform updater: `python tools/update_seed.py --sessions "令和7年春期"`  
   - Optional install/restart Android: add `--run` (and `--adb <path>` if needed).
   - Optional clear data (dev-only): `--clear-data`
+  - Defaults to prefer new data on ID collisions; pass `--prefer-existing` to keep old.
   - Override package: `--package com.example.app`
   - Override flutter: `--flutter C:\path\to\flutter.bat` (skips run if not found)
 - PowerShell wrapper:  

@@ -114,6 +114,11 @@ def main():
     parser.add_argument("--seed", default="assets/questions_seed.json")
     parser.add_argument("--tmp", default="tmp_seed.json")
     parser.add_argument("--prefer-new", action="store_true")
+    parser.add_argument(
+        "--prefer-existing",
+        action="store_true",
+        help="Keep existing questions when IDs collide (default is to prefer new).",
+    )
     parser.add_argument("--install-android", action="store_true", help="Legacy flag; same as --run")
     parser.add_argument("--run", action="store_true", help="Install and launch on Android after update")
     parser.add_argument("--clear-data", action="store_true", help="adb pm clear <package> before launch (dev only)")
@@ -122,18 +127,40 @@ def main():
     parser.add_argument("--adb", default=None)
     args = parser.parse_args()
 
+    if args.prefer_new and args.prefer_existing:
+        print("Choose only one: --prefer-new or --prefer-existing")
+        sys.exit(2)
+
     seed_path = Path(args.seed)
     tmp_path = Path(args.tmp)
+    if seed_path.resolve() == tmp_path.resolve():
+        print("--tmp must be different from --seed")
+        sys.exit(2)
 
     # Run scraper
     run([sys.executable, "scrape.py", "--sessions", args.sessions, "--out", str(tmp_path)])
 
     # Merge
-    added, replaced, merged = storage.merge_seed_files(
-        seed_path, tmp_path, seed_path, prefer_new=args.prefer_new
-    )
+    seed_path.parent.mkdir(parents=True, exist_ok=True)
+    merge_out_path = seed_path.with_suffix(seed_path.suffix + ".merge.tmp")
+    prefer_new = True if not args.prefer_existing else False
+    if args.prefer_new:
+        prefer_new = True
+    try:
+        added, replaced, merged, dropped_ids = storage.merge_seed_files(
+            seed_path, tmp_path, merge_out_path, prefer_new=prefer_new
+        )
+    except storage.ValidationError as exc:
+        print(f"Seed validation failed after merge: {exc}")
+        sys.exit(1)
+    merge_out_path.replace(seed_path)
     summary = storage.summarize(merged)
-    print(f"Added: {added}, Replaced: {replaced}, Total: {summary['total']}")
+    kept = summary["total"] - added - replaced
+    dropped = len(dropped_ids)
+    print(
+        f"Added: {added}, Replaced: {replaced}, Kept: {kept}, Dropped invalid: {dropped}, "
+        f"Total: {summary['total']}"
+    )
     print(f"Per-year: {summary['per_year']}")
     print(f"Per-category: {summary['per_category']}")
 

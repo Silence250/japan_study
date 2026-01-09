@@ -38,7 +38,7 @@ def validate_question(q: Dict[str, Any]) -> None:
         raise ValidationError(f"choices contain empty/whitespace entries: {q}")
     if not isinstance(q["answerIndex"], int):
         raise ValidationError(f"answerIndex must be int: {q}")
-    if q["answerIndex"] != -1 and not (0 <= q["answerIndex"] < len(q["choices"])):
+    if not (0 <= q["answerIndex"] < len(q["choices"])):
         raise ValidationError(f"answerIndex invalid: {q}")
 
 
@@ -55,6 +55,37 @@ def validate_seed(seed: Dict[str, Any]) -> None:
             raise ValidationError("sourceSessions must be a list of strings when present")
     for q in seed["questions"]:
         validate_question(q)
+
+
+def repair_seed(seed: Dict[str, Any]) -> Tuple[Dict[str, Any], List[str]]:
+    if not isinstance(seed, dict):
+        return {"version": 1, "questions": []}, ["<invalid seed>"]
+    questions = seed.get("questions", [])
+    if not isinstance(questions, list):
+        questions = []
+    valid_questions: List[Dict[str, Any]] = []
+    invalid_ids: List[str] = []
+    for q in questions:
+        try:
+            validate_question(q)
+        except ValidationError:
+            qid = q.get("id") if isinstance(q, dict) else None
+            invalid_ids.append(str(qid) if qid else "<missing id>")
+            continue
+        valid_questions.append(q)
+    repaired = dict(seed)
+    repaired["questions"] = valid_questions
+    if "generatedAt" in repaired and repaired["generatedAt"] is not None:
+        if not isinstance(repaired["generatedAt"], str):
+            repaired.pop("generatedAt", None)
+    if "sourceSessions" in repaired and repaired["sourceSessions"] is not None:
+        if not isinstance(repaired["sourceSessions"], list) or not all(
+            isinstance(s, str) for s in repaired["sourceSessions"]
+        ):
+            repaired.pop("sourceSessions", None)
+    if not isinstance(repaired.get("version", 1), int):
+        repaired["version"] = 1
+    return repaired, invalid_ids
 
 
 def load_seed(path: Path) -> Dict[str, Any]:
@@ -93,10 +124,14 @@ def merge_seed_files(
     incoming_path: Path,
     out_path: Path,
     prefer_new: bool = False,
-) -> Tuple[int, int, Dict[str, Any]]:
+) -> Tuple[int, int, Dict[str, Any], List[str]]:
     existing = load_seed(existing_path) if existing_path.exists() else {"version": 1, "questions": []}
     incoming = load_seed(incoming_path)
-    validate_seed(existing)
+    existing, dropped_ids = repair_seed(existing)
+    if dropped_ids:
+        print(
+            f"[warn] Dropped {len(dropped_ids)} invalid existing questions: {', '.join(dropped_ids)}"
+        )
     validate_seed(incoming)
     merged_questions, added, replaced = merge_questions(
         existing.get("questions", []), incoming.get("questions", []), prefer_new=prefer_new
@@ -111,7 +146,7 @@ def merge_seed_files(
     }
     validate_seed(merged_seed)
     write_seed_atomic(out_path, merged_seed)
-    return added, replaced, merged_seed
+    return added, replaced, merged_seed, dropped_ids
 
 
 def summarize(seed: Dict[str, Any]) -> Dict[str, Any]:
