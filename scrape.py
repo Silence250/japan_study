@@ -235,7 +235,6 @@ def fetch_question_page(
             method="POST",
             data=data,
             headers={"Referer": BASE_URL},
-            cache_key=f"{sid}-{qno}",
             return_response=True,
         )
     )
@@ -387,7 +386,6 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
 
 
 

@@ -312,13 +312,19 @@ class QuestionRepository {
 
   QuestionWithState _mapQuestionRow(dynamic row) {
     final data = row.data as Map<String, Object?>;
+    final rawChoices = Question.decodeChoices(data['choices'] as String);
+    final sanitizedAnswerIndex = Question.sanitizeChoices(
+      rawChoices,
+      data['answer_index'] as int,
+      questionId: data['id'] as String?,
+    );
     final question = Question(
       id: data['id'] as String,
       category: data['category'] as String,
       year: data['year'] as int,
       text: data['text'] as String,
-      choices: Question.decodeChoices(data['choices'] as String),
-      answerIndex: data['answer_index'] as int,
+      choices: rawChoices,
+      answerIndex: sanitizedAnswerIndex,
       explanation: data['explanation'] as String,
       sourceUrl: (data['source_url'] as String?)?.isEmpty == true
           ? null

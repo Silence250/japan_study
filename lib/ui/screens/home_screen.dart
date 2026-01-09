@@ -271,7 +271,7 @@ class _CategoryNode {
 List<_CategoryNode> _buildTree(List<CategorySummary> categories) {
   final root = <_CategoryNode>[];
 
-  _CategoryNode _findOrAdd(List<_CategoryNode> level, String name) {
+  _CategoryNode findOrAdd(List<_CategoryNode> level, String name) {
     final existing = level.where((n) => n.name == name).toList();
     if (existing.isNotEmpty) return existing.first;
     final node = _CategoryNode(name);
@@ -285,7 +285,7 @@ List<_CategoryNode> _buildTree(List<CategorySummary> categories) {
     for (int i = 0; i < parts.length; i++) {
       final part = parts[i];
       path = path.isEmpty ? part : '$path » $part';
-      final node = _findOrAdd(level, part);
+      final node = findOrAdd(level, part);
       node.count += count;
       if (i == parts.length - 1) {
         node.fullPath = path;

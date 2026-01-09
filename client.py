@@ -114,11 +114,17 @@ class HttpClient:
 
     def _hash_key(self, config: RequestConfig) -> str:
         h = hashlib.sha256()
+        h.update(config.method.encode("utf-8"))
         h.update(config.url.encode("utf-8"))
         if config.params:
           h.update(json.dumps(config.params, sort_keys=True).encode("utf-8"))
         if config.json_body:
           h.update(json.dumps(config.json_body, sort_keys=True).encode("utf-8"))
+        if config.data is not None:
+            try:
+                h.update(json.dumps(config.data, ensure_ascii=False).encode("utf-8"))
+            except TypeError:
+                h.update(str(config.data).encode("utf-8"))
         return h.hexdigest()
 
     def _throttle(self) -> None:

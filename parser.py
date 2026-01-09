@@ -7,7 +7,7 @@ from __future__ import annotations
 import json
 import re
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from bs4 import BeautifulSoup
 
@@ -94,6 +94,7 @@ def extract_questions_from_html(html: str, session: SessionMeta) -> List[Dict[st
     answer_char_text = answer_char.get_text(strip=True) if answer_char else ""
     char_to_index = {"ア": 0, "イ": 1, "ウ": 2, "エ": 3}
     answer_index = char_to_index.get(answer_char_text, -1)
+    choices, answer_index = _sanitize_choices(choices, answer_index)
 
     explanation_el = soup.select_one("#kaisetsu")
     explanation = explanation_el.get_text(" ", strip=True) if explanation_el else ""
@@ -133,6 +134,21 @@ def extract_questions_from_html(html: str, session: SessionMeta) -> List[Dict[st
             "sourceUrl": source_url,
         }
     ]
+
+
+def _sanitize_choices(choices: List[str], answer_index: int) -> Tuple[List[str], int]:
+    cleaned: List[str] = []
+    new_answer_index: Optional[int] = None
+    for idx, choice in enumerate(choices):
+        trimmed = choice.strip()
+        if not trimmed:
+            continue
+        if idx == answer_index:
+            new_answer_index = len(cleaned)
+        cleaned.append(trimmed)
+    if new_answer_index is None:
+        return cleaned, -1
+    return cleaned, new_answer_index
 
 
 def parse_total_questions(html: str) -> Optional[int]:

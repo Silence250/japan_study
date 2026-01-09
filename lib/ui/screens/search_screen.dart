@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../models/question.dart';
 import '../providers.dart';
 
 class SearchScreen extends ConsumerStatefulWidget {
@@ -84,7 +85,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                           ),
                                         const SizedBox(height: 8),
                                         Text(
-                                          'Answer: ${item.question.choices[item.question.answerIndex]}',
+                                          'Answer: ${_answerText(item.question)}',
                                         ),
                                         const SizedBox(height: 4),
                                         Text(item.question.explanation),
@@ -113,5 +114,13 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     setState(() {
       _query = _controller.text.trim();
     });
+  }
+
+  String _answerText(Question question) {
+    final index = question.answerIndex;
+    if (index < 0 || index >= question.choices.length) {
+      return 'Unavailable';
+    }
+    return question.choices[index];
   }
 }

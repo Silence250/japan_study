@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
+
 class Question {
   const Question({
     required this.id,
@@ -22,15 +24,21 @@ class Question {
   final String? sourceUrl;
 
   factory Question.fromJson(Map<String, dynamic> json) {
+    final rawChoices = (json['choices'] as List<dynamic>? ?? const [])
+        .map((choice) => choice == null ? '' : choice.toString())
+        .toList();
+    final sanitizedAnswerIndex = sanitizeChoices(
+      rawChoices,
+      json['answerIndex'] as int? ?? -1,
+      questionId: json['id'] as String?,
+    );
     return Question(
       id: json['id'] as String,
       category: json['category'] as String,
       year: json['year'] as int,
       text: json['text'] as String,
-      choices: (json['choices'] as List<dynamic>)
-          .map((choice) => choice as String)
-          .toList(),
-      answerIndex: json['answerIndex'] as int,
+      choices: rawChoices,
+      answerIndex: sanitizedAnswerIndex,
       explanation: json['explanation'] as String,
       sourceUrl: (json['sourceUrl'] as String?)?.isEmpty == true
           ? null
@@ -59,6 +67,41 @@ class Question {
 
   static String encodeChoices(List<String> choices) {
     return jsonEncode(choices);
+  }
+
+  static int sanitizeChoices(
+    List<String> choices,
+    int answerIndex, {
+    String? questionId,
+  }) {
+    final cleaned = <String>[];
+    int? newAnswerIndex;
+    for (var i = 0; i < choices.length; i++) {
+      final trimmed = choices[i].trim();
+      if (trimmed.isEmpty) {
+        continue;
+      }
+      if (i == answerIndex) {
+        newAnswerIndex = cleaned.length;
+      }
+      cleaned.add(trimmed);
+    }
+    if (kDebugMode && cleaned.length != choices.length) {
+      debugPrint(
+        'Question ${questionId ?? ''} has empty choices; '
+        'removed ${choices.length - cleaned.length}.',
+      );
+    }
+    choices
+      ..clear()
+      ..addAll(cleaned);
+    if (newAnswerIndex == null && answerIndex != -1 && kDebugMode) {
+      debugPrint(
+        'Question ${questionId ?? ''} answerIndex $answerIndex '
+        'is invalid after sanitization.',
+      );
+    }
+    return newAnswerIndex ?? -1;
   }
 }
 

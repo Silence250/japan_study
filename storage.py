@@ -34,6 +34,8 @@ def validate_question(q: Dict[str, Any]) -> None:
         raise ValidationError(f"year must be int: {q}")
     if not isinstance(q["choices"], list) or not q["choices"]:
         raise ValidationError(f"choices must be non-empty list: {q}")
+    if any(choice is None or not str(choice).strip() for choice in q["choices"]):
+        raise ValidationError(f"choices contain empty/whitespace entries: {q}")
     if not isinstance(q["answerIndex"], int):
         raise ValidationError(f"answerIndex must be int: {q}")
     if q["answerIndex"] != -1 and not (0 <= q["answerIndex"] < len(q["choices"])):

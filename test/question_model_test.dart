@@ -25,4 +25,22 @@ void main() {
     expect(question.explanation, 'Explanation');
     expect(question.sourceUrl, isNull);
   });
+
+  test('Question fromJson sanitizes empty choices and adjusts answerIndex', () {
+    final json = {
+      'id': 'ap-2024-q002',
+      'category': 'network',
+      'year': 2024,
+      'text': 'Question with blanks',
+      'choices': [' A ', '', '  ', 'B', null],
+      'answerIndex': 3,
+      'explanation': 'Explanation',
+      'sourceUrl': '',
+    };
+
+    final question = Question.fromJson(json);
+
+    expect(question.choices, ['A', 'B']);
+    expect(question.answerIndex, 1);
+  });
 }

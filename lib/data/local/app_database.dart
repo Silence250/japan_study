@@ -7,7 +7,7 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 class AppDatabase extends GeneratedDatabase {
-  AppDatabase._(QueryExecutor executor) : super(executor);
+  AppDatabase._(super.executor);
 
   @override
   int get schemaVersion => 1;
