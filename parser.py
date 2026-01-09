@@ -26,6 +26,8 @@ ERA_PATTERNS = {
     "平成": 1988,
     "昭和": 1925,
 }
+CHOICE_IDS = ("select_a", "select_i", "select_u", "select_e")
+CHOICE_LABELS = ("ア", "イ", "ウ", "エ")
 
 
 def era_to_gregorian(label: str) -> int:
@@ -73,6 +75,47 @@ def _extract_category_path(soup: BeautifulSoup) -> List[str]:
     return parts
 
 
+def _extract_choices_from_list(soup: BeautifulSoup) -> List[str]:
+    items = soup.select(".selectList li")
+    if len(items) < len(CHOICE_LABELS):
+        return []
+    choices: List[str] = []
+    for li in items[: len(CHOICE_LABELS)]:
+        choice_text = ""
+        for child in li.find_all(["span", "div", "p"], recursive=False):
+            text = child.get_text(" ", strip=True)
+            if text:
+                choice_text = text
+                break
+        if not choice_text:
+            button = li.find("button", class_="selectBtn")
+            label = button.get_text(" ", strip=True) if button else ""
+            raw = li.get_text(" ", strip=True)
+            if label and raw.startswith(label):
+                raw = raw[len(label) :].strip()
+            choice_text = raw
+        choices.append(choice_text)
+    return choices
+
+
+def _extract_choices(soup: BeautifulSoup) -> List[str]:
+    choices: List[str] = []
+    found_any = False
+    for choice_id in CHOICE_IDS:
+        el = soup.select_one(f"#{choice_id}")
+        if el:
+            found_any = True
+            choices.append(el.get_text(" ", strip=True))
+        else:
+            choices.append("")
+    # Some pages render choices without select_* ids (or as images). Fallback to list text.
+    if not found_any or any(not choice.strip() for choice in choices):
+        fallback = _extract_choices_from_list(soup)
+        if fallback:
+            choices = fallback
+    return choices
+
+
 def extract_questions_from_html(html: str, session: SessionMeta) -> List[Dict[str, Any]]:
     soup = BeautifulSoup(html, "html.parser")
 
@@ -85,10 +128,7 @@ def extract_questions_from_html(html: str, session: SessionMeta) -> List[Dict[st
     if text_div:
         question_text = text_div.get_text(" ", strip=True)
 
-    choices: List[str] = []
-    for choice_id in ("select_a", "select_i", "select_u", "select_e"):
-        el = soup.select_one(f"#{choice_id}")
-        choices.append(el.get_text(" ", strip=True) if el else "")
+    choices = _extract_choices(soup)
 
     answer_char = soup.select_one("#answerChar")
     answer_char_text = answer_char.get_text(strip=True) if answer_char else ""
